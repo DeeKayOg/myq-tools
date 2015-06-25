@@ -1,22 +1,21 @@
 package myqlib
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+	"database/sql"
+    _ "github.com/go-sql-driver/mysql"
 )
 
 type MySQLAdminCommand string
 
 const (
-	MYSQLADMIN        string            = "mysqladmin"
-	STATUS_COMMAND    MySQLAdminCommand = "extended-status"
-	VARIABLES_COMMAND MySQLAdminCommand = "variables"
+	STATUS_COMMAND    MySQLAdminCommand = "SHOW GLOBAL STATUS"
+	VARIABLES_COMMAND MySQLAdminCommand = "SHOW GLOBAL VARIABLES"
 	// prefix of SHOW VARIABLES keys, they are stored (if available) in the same map as the status variables
 	VAR_PREFIX = "V_"
 )
@@ -237,51 +236,41 @@ func NewLiveLoader(i time.Duration, args string) *LiveLoader {
 
 // Collect output from mysqladmin and send it back in a sample
 func (l LiveLoader) harvestMySQLAdmin(command MySQLAdminCommand) (chan MyqSample, error) {
-	// Make sure we have MYSQLADMIN
-	path, err := exec.LookPath(MYSQLADMIN)
+	db, err := sql.Open("mysql", "")
+
 	if err != nil {
 		return nil, err
 	}
 
-	// Build the argument list
-	args := []string{
-		string(command), "-i",
-		fmt.Sprintf("%.0f", l.getInterval().Seconds()),
-	}
-	if l.args != "" {
-		args = append(args, strings.Split(l.args, ` `)...)
-	}
-	// fmt.Println( args )
 
-	// Initialize the command
-	cmd := exec.Command(path, args...)
-	cleanupSubcmd(cmd)
-
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
+	// fmt.Sprintf("%.0f", l.getInterval().Seconds()),
 	var ch = make(chan MyqSample)
+	ticker := time.NewTicker( l.getInterval() )
 
 	// The file scanning goes into the background
 	go func() {
+		defer db.Close()
 		defer close(ch)
-		parseSamples(stdout, ch, l.loaderInterval.getInterval())
-	}()
 
-	// Handle if the subcommand exits
-	go func() {
-		err := cmd.Wait()
-		if err != nil {
-			fmt.Println(MYSQLADMIN, "exited: ", err, stderr.String())
+		// Every time the ticker fires...
+		for range ticker.C {
+			// Run our query 
+			rows, err := db.Query(string(command))
+			if err != nil {
+				fmt.Println(err.Error())
+				continue
+			}
+
+			// get the results and put them into the sample
+			timesample := make(MyqSample)
+			for rows.Next() {
+				var key, val string
+				rows.Scan( &key, &val )
+
+				// fmt.Println( key, "=>", val )
+				timesample[strings.ToLower(key)] = val
+			}
+			ch <- timesample
 		}
 	}()
 
