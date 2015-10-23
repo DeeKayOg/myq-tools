@@ -23,7 +23,7 @@ func GetTermSize() (height, width int64) {
 }
 
 // Set OS-specific SysProcAttrs if they exist
-func cleanupSubcmd(c *exec.Cmd) {
+func CleanupSubcmd(c *exec.Cmd) {
 	// Send the subprocess a SIGTERM when we exit
 	attr := new(syscall.SysProcAttr)
 

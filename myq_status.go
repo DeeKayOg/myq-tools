@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jayjanssen/myq-tools/myqlib"
+	"github.com/jayjanssen/myq-tools/myqlib/loader"
+
 	"math"
 	"os"
 	"os/signal"
@@ -140,21 +142,22 @@ func main() {
 	}
 
 	// The Loader and Timecol we will use
-	var loader myqlib.Loader
+	var l loader.Loader
+	var err error
 
 	if *statusfile != "" {
 		// File given, load it (and the optional varfile)
-		loader = myqlib.NewFileLoader(*interval, *statusfile, *varfile)
+		l = loader.NewFileLoader(*interval, *statusfile, *varfile)
 		v.SetTimeCol(&myqlib.Runtime_col)
 	} else {
 		// No file given, this is a live collection and we use timestamps
 		// loader = myqlib.NewLiveLoader(*interval, *mysql_args)
-		loader = myqlib.NewSqlLoader(*interval, "root", "", "")
+		l, err = loader.NewSqlLoader(*interval, "root", "", "")
 		v.SetTimeCol(&myqlib.Timestamp_col)
 	}
 
 	// Get channel that will feed us states from the loader
-	states, err := myqlib.GetState(loader)
+	states, err := loader.GetState(l)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(LOADER_ERROR)

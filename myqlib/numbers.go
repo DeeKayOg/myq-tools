@@ -134,7 +134,7 @@ func calculate_rate(bigger, smaller, seconds float64) float64 {
 // Return the sum of all variables in the given sample
 func calculate_sum(sample MyqSample, variable_names []string) (sum float64) {
 	for _, v := range variable_names {
-		v, _ := sample.getFloat(v)
+		v, _ := sample.GetFloat(v)
 		sum += v
 	}
 	return sum

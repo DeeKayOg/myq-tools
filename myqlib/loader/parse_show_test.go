@@ -1,17 +1,23 @@
-package myqlib
+package loader
 
 import (
+	"github.com/jayjanssen/myq-tools/myqlib"
+
 	"testing"
 	"time"
-	// "fmt"
+	"fmt"
 )
 
 func TestSingleSample(t *testing.T) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.single", ""}
+	fmt.Println( 0 )
+
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.single", ""}
 	samples, err := l.getStatus()
 	if err != nil {
 		t.Error(err)
 	}
+
+	fmt.Println( 1 )
 
 	// Check some types on some known metrics to verify autodetection
 	sample := <-samples
@@ -22,8 +28,11 @@ func TestSingleSample(t *testing.T) {
 		"binlog_snapshot_file":       "string",
 	}
 
+	fmt.Println( 2 )
+
+
 	for varname, expectedtype := range typeTests {
-		i, ierr := sample.getInt(varname)
+		i, ierr := sample.GetInt(varname)
 		if ierr == nil {
 			if expectedtype != "int64" {
 				t.Fatal("Found integer, expected", expectedtype, "for", varname, "value: `", i, "`")
@@ -32,7 +41,7 @@ func TestSingleSample(t *testing.T) {
 			}
 		}
 
-		f, ferr := sample.getFloat(varname)
+		f, ferr := sample.GetFloat(varname)
 		if ferr == nil {
 			if expectedtype != "float64" {
 				t.Fatal("Found float, expected", expectedtype, "for", varname, "value: `", f, "`")
@@ -41,7 +50,7 @@ func TestSingleSample(t *testing.T) {
 			}
 		}
 
-		s, serr := sample.getString(varname)
+		s, serr := sample.GetString(varname)
 		if serr == nil {
 			if expectedtype != "string" {
 				t.Fatal("Found string, expected", expectedtype, "for", varname, "value: `", s, "`")
@@ -49,11 +58,15 @@ func TestSingleSample(t *testing.T) {
 				continue
 			}
 		}
+		fmt.Println( 3 )
+
 	}
+
+
 }
 
 func TestTwoSamples(t *testing.T) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.two", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.two", ""}
 	samples, err := l.getStatus()
 
 	if err != nil {
@@ -68,7 +81,7 @@ func TestManySamples(t *testing.T) {
 		return
 	}
 
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.lots", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.lots", ""}
 	samples, err := l.getStatus()
 
 	if err != nil {
@@ -79,7 +92,7 @@ func TestManySamples(t *testing.T) {
 }
 
 func TestSingleBatchSample(t *testing.T) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysql.single", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysql.single", ""}
 	samples, err := l.getStatus()
 	if err != nil {
 		t.Error(err)
@@ -95,7 +108,7 @@ func TestSingleBatchSample(t *testing.T) {
 	}
 
 	for varname, expectedtype := range typeTests {
-		i, ierr := sample.getInt(varname)
+		i, ierr := sample.GetInt(varname)
 		if ierr == nil {
 			if expectedtype != "int64" {
 				t.Fatal("Found integer, expected", expectedtype, "for", varname, "value: `", i, "`")
@@ -104,7 +117,7 @@ func TestSingleBatchSample(t *testing.T) {
 			}
 		}
 
-		f, ferr := sample.getFloat(varname)
+		f, ferr := sample.GetFloat(varname)
 		if ferr == nil {
 			if expectedtype != "float64" {
 				t.Fatal("Found float, expected", expectedtype, "for", varname, "value: `", f, "`")
@@ -113,7 +126,7 @@ func TestSingleBatchSample(t *testing.T) {
 			}
 		}
 
-		s, serr := sample.getString(varname)
+		s, serr := sample.GetString(varname)
 		if serr == nil {
 			if expectedtype != "string" {
 				t.Fatal("Found string, expected", expectedtype, "for", varname, "value: `", s, "`")
@@ -125,7 +138,7 @@ func TestSingleBatchSample(t *testing.T) {
 }
 
 func TestTwoBatchSamples(t *testing.T) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysql.two", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysql.two", ""}
 	samples, err := l.getStatus()
 
 	if err != nil {
@@ -140,7 +153,7 @@ func TestManyBatchSamples(t *testing.T) {
 		return
 	}
 
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysql.lots", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysql.lots", ""}
 	samples, err := l.getStatus()
 
 	if err != nil {
@@ -150,27 +163,24 @@ func TestManyBatchSamples(t *testing.T) {
 	checksamples(t, samples, 215)
 }
 
-func checksamples(t *testing.T, samples chan MyqSample, expected int) {
+func checksamples(t *testing.T, samples chan myqlib.MyqSample, expected int) {
 	i := 0
-	var prev MyqSample
+	prev := myqlib.NewMyqSample()
 	for sample := range samples {
-		t.Log("New MyqSample", i, len(sample), sample["uptime"])
-		if prev != nil {
-			t.Log("\tPrev", i, len(prev), prev["uptime"])
+		t.Log("New MyqSample", i, sample.Length(), sample.Get("uptime"))
+		t.Log("\tPrev", i, prev.Length(), prev.Get("uptime"))
 
-			if prev["uptime"] == sample["uptime"] {
-				t.Fatal("previous has same uptime")
-			}
+		if prev.Get("uptime") == sample.Get("uptime") {
+			t.Fatal("previous has same uptime")
 		}
 
-		if len(prev) > 0 && len(prev) > len(sample) {
-			t.Log(prev["uptime"], "(previous) had", len(prev), "keys.  Current current has", len(sample))
-			for pkey := range prev {
-				_, ok := (sample)[pkey]
-				if !ok {
+		if prev.Length() > 0 && prev.Length() > sample.Length() {
+			t.Log(prev.Get("uptime"), "(previous) had", prev.Length(), "keys.  Current current has", sample.Length())
+			prev.ForEach( func(pkey, _ string) {
+				if sample.Has(pkey) {
 					t.Log("Missing", pkey, "from current sample")
 				}
-			}
+			})
 			t.Fatal("")
 		}
 		prev = sample
@@ -183,7 +193,7 @@ func checksamples(t *testing.T, samples chan MyqSample, expected int) {
 }
 
 func TestTokuSample(t *testing.T) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysql.toku", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysql.toku", ""}
 	samples, err := l.getStatus()
 
 	if err != nil {
@@ -196,7 +206,7 @@ func TestTokuSample(t *testing.T) {
 
 func BenchmarkParseStatus(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.single", ""}
+		l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.single", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {
@@ -208,7 +218,7 @@ func BenchmarkParseStatus(b *testing.B) {
 
 func BenchmarkParseStatusBatch(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysql.single", ""}
+		l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysql.single", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {
@@ -220,7 +230,7 @@ func BenchmarkParseStatusBatch(b *testing.B) {
 
 func BenchmarkParseVariablesBatch(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Second), "../testdata/variables", ""}
+		l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/variables", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {
@@ -232,7 +242,7 @@ func BenchmarkParseVariablesBatch(b *testing.B) {
 
 func BenchmarkParseVariablesTabular(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Second), "../testdata/variables.tab", ""}
+		l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/variables.tab", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {
@@ -244,7 +254,7 @@ func BenchmarkParseVariablesTabular(b *testing.B) {
 
 func BenchmarkParseManyBatchSamples(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysql.lots", ""}
+		l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysql.lots", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {
@@ -258,7 +268,7 @@ func BenchmarkParseManyBatchSamples(b *testing.B) {
 
 func BenchmarkParseManySamples(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.lots", ""}
+		l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.lots", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {

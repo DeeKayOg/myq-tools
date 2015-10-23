@@ -23,7 +23,7 @@ var (
 		func(state *MyqState, c Col) chan string {
 			ch := make(chan string, 1)
 			defer close(ch)
-			runtime := time.Duration(state.Cur.getI(`uptime`)-state.FirstUptime) * time.Second
+			runtime := time.Duration(state.Cur.GetI(`uptime`)-state.FirstUptime) * time.Second
 			ch <- fit_string(fmt.Sprintf("%.0fs", runtime.Seconds()), c.Width())
 			return ch
 		})
@@ -200,11 +200,11 @@ func DefaultViews() map[string]View {
 				ch := make(chan string, 1)
 				defer close(ch)
 				ch <- fmt.Sprintf("%s / %s (idx: %d) / %s %s",
-					state.Cur.getStr(`V_wsrep_cluster_name`),
-					state.Cur.getStr(`V_wsrep_node_name`),
-					state.Cur.getI(`wsrep_local_index`),
-					state.Cur.getStr(`wsrep_provider_name`),
-					state.Cur.getStr(`wsrep_provider_version`))
+					state.Cur.GetStr(`V_wsrep_cluster_name`),
+					state.Cur.GetStr(`V_wsrep_node_name`),
+					state.Cur.GetI(`wsrep_local_index`),
+					state.Cur.GetStr(`wsrep_provider_name`),
+					state.Cur.GetStr(`wsrep_provider_version`))
 				return ch
 			},
 			NewGroupCol(`Cluster`, `Cluster-wide stats (at least according to this node)`,
@@ -218,7 +218,7 @@ func DefaultViews() map[string]View {
 					ch := make( chan string, 1)
 					defer close(ch)
 
-					st := state.Cur.getStr(`wsrep_local_state_comment`)
+					st := state.Cur.GetStr(`wsrep_local_state_comment`)
 					if strings.HasPrefix(st, `Join`) {
 						switch st {
 						case `Joining`:
@@ -248,7 +248,7 @@ func DefaultViews() map[string]View {
 			NewFuncCol(`laten`, `Average replication latency`, 5, func(state *MyqState, c Col) chan string {
 				ch := make(chan string, 1)
 				defer close(ch)
-				vals := strings.Split(state.Cur.getStr(`wsrep_evs_repl_latency`), `/`)
+				vals := strings.Split(state.Cur.GetStr(`wsrep_evs_repl_latency`), `/`)
 
 				// Expecting 5 vals here, filler if not
 				if len(vals) != 5 {
@@ -317,8 +317,8 @@ func DefaultViews() map[string]View {
 				diff_variables := map[float64][]string{}
 
 				// Get the rate for every ^com* variable
-				for _, variable := range expand_variables([]string{`^com.*`}, state.Cur) {
-					diff := calculate_diff(state.Cur.getF(variable), state.Prev.getF(variable))
+				for _, variable := range Expand_variables([]string{`^com.*`}, state.Cur) {
+					diff := calculate_diff(state.Cur.GetF(variable), state.Prev.GetF(variable))
 
 					// Skip those without activity
 					if diff <= 0 {

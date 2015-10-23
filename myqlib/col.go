@@ -68,9 +68,9 @@ func (c GaugeCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
 
-	if val, err := state.Cur.getFloat(c.variable_name); err == nil {
+	if val, err := state.Cur.GetFloat(c.variable_name); err == nil {
 		ch <- fit_string(collapse_number(val, c.Width(), c.precision, c.units), c.Width())
-	} else if val, err := state.Cur.getString(c.variable_name); err == nil {
+	} else if val, err := state.Cur.GetString(c.variable_name); err == nil {
 		ch <- fit_string(val, c.Width())
 	} else {
 		// must be missing, just filler
@@ -93,8 +93,8 @@ func (c RateCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
 
-	cnum, cerr := state.Cur.getFloat(c.variable_name)
-	pnum, _ := state.Prev.getFloat(c.variable_name)
+	cnum, cerr := state.Cur.GetFloat(c.variable_name)
+	pnum, _ := state.Prev.GetFloat(c.variable_name)
 
 	if cerr != nil { // we only care about cerr, if perr is set, it should be a 0.0
 		ch <- column_filler(c)
@@ -119,8 +119,8 @@ func (c DiffCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
 
-	cnum, cerr := state.Cur.getFloat(c.variable_name)
-	pnum, _ := state.Prev.getFloat(c.variable_name)
+	cnum, cerr := state.Cur.GetFloat(c.variable_name)
+	pnum, _ := state.Prev.GetFloat(c.variable_name)
 
 	if cerr != nil { // we only care about cerr, if perr is set, it should be a 0.0
 		ch <- column_filler(c)
@@ -160,8 +160,8 @@ func (c PercentCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
 
-	numerator, nerr := state.Cur.getFloat(c.numerator)
-	denomenator, derr := state.Cur.getFloat(c.denomenator)
+	numerator, nerr := state.Cur.GetFloat(c.numerator)
+	denomenator, derr := state.Cur.GetFloat(c.denomenator)
 
 	// Must have both
 	if nerr != nil || derr != nil || denomenator == 0 {
@@ -186,7 +186,7 @@ func NewStringCol(name, help string, w int64, variable_name string) StringCol {
 func (c StringCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
-	val := state.Cur.getStr(c.variable_name)
+	val := state.Cur.GetStr(c.variable_name)
 	ch <- fit_string(val, c.Width())
 	return ch
 }
@@ -203,7 +203,7 @@ func NewRightmostCol(name, help string, w int64, variable_name string) Rightmost
 func (c RightmostCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
-	ch <- right_fit_string(state.Cur.getStr(c.variable_name), c.Width())
+	ch <- right_fit_string(state.Cur.GetStr(c.variable_name), c.Width())
 	return ch
 }
 
@@ -222,8 +222,8 @@ func (c CurDiffCol) Data(state *MyqState) chan string {
 	ch := make(chan string, 1)
 	defer close(ch)
 
-	bnum, _ := state.Cur.getFloat(c.bigger)
-	snum, _ := state.Cur.getFloat(c.smaller)
+	bnum, _ := state.Cur.GetFloat(c.bigger)
+	snum, _ := state.Cur.GetFloat(c.smaller)
 
 	cv := collapse_number(calculate_diff(bnum, snum), c.Width(), c.precision, c.units)
 	ch <- fit_string(cv, c.Width())
@@ -260,6 +260,6 @@ func (c RateSumCol) Data(state *MyqState) chan string {
 
 func (c *RateSumCol) expand_variables(sample MyqSample) {
 	if len(c.expanded_variable_names) == 0 {
-		c.expanded_variable_names = expand_variables(c.variable_names, sample)
+		c.expanded_variable_names = Expand_variables(c.variable_names, sample)
 	}
 }

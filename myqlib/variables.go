@@ -6,7 +6,7 @@ import (
 )
 
 // Given a variable list (potentially with regexes) and a sample, expand the variables to all possible matches
-func expand_variables(variables []string, sample MyqSample) (expanded []string) {
+func Expand_variables(variables []string, sample MyqSample) (expanded []string) {
 	hash := map[string]int{}
 	for _, variable := range variables {
 		re, err := regexp.Compile(variable)
@@ -15,11 +15,11 @@ func expand_variables(variables []string, sample MyqSample) (expanded []string) 
 			hash[variable] = 1
 		} else {
 			// Got a regex, loop through all keys to try to find matches
-			for key, _ := range sample {
+			sample.ForEach(func(key,val string) {
 				if re.MatchString(key) {
 					hash[key] = 1
 				}
-			}
+			})
 		}
 	}
 	for key, _ := range hash {

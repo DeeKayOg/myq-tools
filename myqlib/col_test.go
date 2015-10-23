@@ -10,8 +10,8 @@ func TestIntCol(t *testing.T) {
 	col := NewGaugeCol("run", "Threads running", 5, "threads_running", 0, NumberUnits)
 
 	state := MyqState{}
-	state.Cur = make(MyqSample)
-	state.Cur["threads_running"] = "10"
+	state.Cur = NewMyqSample()
+	state.Cur.Set("threads_running", "10")
 
 	str := <-col.Data(&state)
 	if str != "   10" {
@@ -25,8 +25,8 @@ func TestFloatCol(t *testing.T) {
 	col := NewGaugeCol("oooe", "Galera OOO E", 5, "wsrep_apply_oooe", 3, NumberUnits)
 
 	state := MyqState{}
-	state.Cur = make(MyqSample)
-	state.Cur["wsrep_apply_oooe"] = "0.015600"
+	state.Cur = NewMyqSample()
+	state.Cur.Set("wsrep_apply_oooe","0.015600")
 
 	str := <-col.Data(&state)
 	if str != "0.016" {
@@ -59,13 +59,13 @@ func TestRateCol(t *testing.T) {
 	col := NewRateCol("cons", "Connections per second", 5, "connections", 0, NumberUnits)
 
 	state := MyqState{}
-	state.Cur = make(MyqSample)
-	state.Cur["connections"] = "10"
-	state.Cur["uptime"] = "1"
+	state.Cur = NewMyqSample()
+	state.Cur.Set("connections","10")
+	state.Cur.Set("uptime","1")
 
-	state.Prev = make(MyqSample)
-	state.Prev["connections"] = "20"
-	state.Prev["uptime"] = "5"
+	state.Prev = NewMyqSample()
+	state.Prev.Set("connections","20")
+	state.Prev.Set("uptime","5")
 
 	state.SecondsDiff = 5.0
 

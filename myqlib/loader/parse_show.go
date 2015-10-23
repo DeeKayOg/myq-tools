@@ -1,12 +1,15 @@
-package myqlib
+package loader
 
 import (
+	"github.com/jayjanssen/myq-tools/myqlib"
+
 	"bytes"
 	"io"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 )
 
 // Different types of files to parse
@@ -18,7 +21,7 @@ const (
 )
 
 // Parse lines from mysql SHOW output.
-func parseSamples(reader io.Reader, ch chan MyqSample, interval time.Duration) {
+func parseSamples(reader io.Reader, ch chan myqlib.MyqSample, interval time.Duration) {
 	outputtype := BATCH // default to BATCH
 	typechecked := false
 	recordmatch := []byte(END_STRING)
@@ -52,6 +55,7 @@ func parseSamples(reader io.Reader, ch chan MyqSample, interval time.Duration) {
 	}
 
 	// This scanner will look for the start of a new set of SHOW STATUS output
+
 	scanner := NewScanner(reader)
 	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		// Check if this looks like a TABULAR file, but only once
@@ -75,7 +79,7 @@ func parseSamples(reader io.Reader, ch chan MyqSample, interval time.Duration) {
 			if check_intervals && skip_interval(data[0:end]) {
 				return end + nl + 1, nil, nil
 			}
-			// fmt.Println( "Found record: ", string(data[0:end]))
+			fmt.Println( "Found record: ", string(data[0:end]))
 			return end + nl + 1, data[0:end], nil
 		}
 
@@ -100,10 +104,10 @@ func parseSamples(reader io.Reader, ch chan MyqSample, interval time.Duration) {
 }
 
 // Parse a full sample into individual lines, populate a MyqSample and emit it to the channel
-func parseBatch(ch chan MyqSample, buffer *bytes.Buffer, outputtype showoutputtype) {
+func parseBatch(ch chan myqlib.MyqSample, buffer *bytes.Buffer, outputtype showoutputtype) {
 	var divideridx int
 
-	timesample := make(MyqSample)
+	timesample := myqlib.NewMyqSample()
 	scanner := NewScanner(buffer)
 
 	for scanner.Scan() {
@@ -139,7 +143,7 @@ func parseBatch(ch chan MyqSample, buffer *bytes.Buffer, outputtype showoutputty
 			key, value = raw[0], raw[1]
 		}
 
-		timesample[strings.ToLower(string(key))] = string(value)
+		timesample.Set( strings.ToLower(string(key)), string(value))
 	}
 
 	if timesample.Length() > 0 {

@@ -1,12 +1,12 @@
-package myqlib
+package loader
 
 import (
+	"github.com/jayjanssen/myq-tools/myqlib"
 	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -26,6 +26,8 @@ const (
 
 	// prefix of SHOW VARIABLES keys, they are stored (if available) in the same map as the status variables
 	VAR_PREFIX = "V_"
+
+	LOADER_ERROR_KEY string = "LOADER_ERROR"
 )
 
 // Build the argument list
@@ -36,91 +38,15 @@ var MYSQLCLIARGS []string = []string{
 }
 
 type Loader interface {
-	getStatus() (chan MyqSample, error)
-	getVars() (chan MyqSample, error)
+	getStatus() (chan myqlib.MyqSample, error)
+	getVars() (chan myqlib.MyqSample, error)
 	getInterval() time.Duration
 }
 
-// MyqSamples are K->V maps
-type MyqSample map[string]string
-
-// Number of keys in the sample
-func (s MyqSample) Length() int {
-	return len(s)
-}
-
-// Get methods for the given key. Returns a value of the appropriate type (error is nil) or default value and an error if it can't parse
-func (s MyqSample) getInt(key string) (int64, error) {
-	val, ok := s[key]
-	if !ok {
-		return 0, errors.New("Key not found")
-	}
-
-	conv, err := strconv.ParseInt(val, 10, 64)
-	if err != nil {
-		return 0, err
-	} else {
-		return conv, nil
-	}
-}
-func (s MyqSample) getFloat(key string) (float64, error) {
-	val, ok := s[key]
-	if !ok {
-		return 0.0, errors.New("Key not found")
-	}
-
-	conv, err := strconv.ParseFloat(val, 64)
-	if err != nil {
-		return 0.0, err
-	} else {
-		return conv, nil
-	}
-}
-func (s MyqSample) getString(key string) (string, error) {
-	val, ok := s[key]
-	if !ok {
-		return "", errors.New("Key not found")
-	}
-	return val, nil // no errors possible here
-}
-
-// Same as above, just ignore the error
-func (s MyqSample) getI(key string) int64 {
-	i, _ := s.getInt(key)
-	return i
-}
-func (s MyqSample) getF(key string) float64 {
-	f, _ := s.getFloat(key)
-	return f
-}
-func (s MyqSample) getStr(key string) string {
-	str, _ := s.getString(key)
-	return str
-}
-
-// Gets either a float or an int (check type of result), or an error
-func (s MyqSample) getNumeric(key string) (interface{}, error) {
-	if val, err := s.getInt(key); err != nil {
-		return val, nil
-	} else if val, err := s.getFloat(key); err != nil {
-		return val, nil
-	} else {
-		return nil, errors.New("Value is not numeric")
-	}
-}
-
-// MyqState contains the current and previous SHOW STATUS outputs.  Also SHOW VARIABLES.
-// Prev might be nil
-type MyqState struct {
-	Cur, Prev   MyqSample
-	SecondsDiff float64 // Difference between Cur and Prev
-	FirstUptime int64   // Uptime of our first sample this run
-}
-
 // Given a loader, get a channel of myqstates being returned
-func GetState(l Loader) (chan *MyqState, error) {
+func GetState(l Loader) (chan *myqlib.MyqState, error) {
 	// First getVars, if possible
-	var latestvars MyqSample // whatever the last vars sample is will be here (may be empty)
+	var latestvars myqlib.MyqSample // whatever the last vars sample is will be here (may be empty)
 	varsch, varserr := l.getVars()
 	// return the error if getVars fails, but not if it's just due to a missing file
 	if varserr != nil && varserr.Error() != "No file given" {
@@ -129,7 +55,7 @@ func GetState(l Loader) (chan *MyqState, error) {
 	}
 
 	// Now getStatus
-	var ch = make(chan *MyqState)
+	var ch = make(chan *myqlib.MyqState)
 	statusch, statuserr := l.getStatus()
 	if statuserr != nil {
 		return nil, statuserr
@@ -139,26 +65,26 @@ func GetState(l Loader) (chan *MyqState, error) {
 	go func() {
 		defer close(ch)
 
-		var prev MyqSample
+		prev := myqlib.NewMyqSample()
 		var firstUptime int64
 		for status := range statusch {
 			// Init new state
-			state := new(MyqState)
+			state := myqlib.NewMyqState()
 			state.Cur = status
 
 			// Only needed for File loaders really
 			if firstUptime == 0 {
-				firstUptime, _ = status.getInt(`uptime`)
+				firstUptime, _ = status.GetInt(`uptime`)
 			}
 			state.FirstUptime = firstUptime
 
 			// Assign the prev
-			if prev != nil {
+			if prev.Has(`uptime`) {
 				state.Prev = prev
 
 				// Calcuate timediff if there is a prev.  Only file loader?
-				curup, _ := status.getFloat(`uptime`)
-				preup, _ := prev.getFloat(`uptime`)
+				curup, _ := status.GetFloat(`uptime`)
+				preup, _ := prev.GetFloat(`uptime`)
 				state.SecondsDiff = curup - preup
 
 				// Skip to the next sample if SecondsDiff is < the interval
@@ -177,13 +103,13 @@ func GetState(l Loader) (chan *MyqState, error) {
 			}
 
 			// Add latest vars to status with prefix
-			for k, v := range latestvars {
+			latestvars.ForEach( func(k, v string) {
 				newkey := fmt.Sprint(VAR_PREFIX, k)
-				state.Cur[newkey] = v
-			}
+				state.Cur.Set(newkey, v)
+			})
 
 			// Send the state
-			ch <- state
+			ch <- &state
 
 			// Set the state for the next round
 			prev = status
@@ -209,13 +135,14 @@ type FileLoader struct {
 func NewFileLoader(i time.Duration, statusFile, varFile string) *FileLoader {
 	return &FileLoader{loaderInterval(i), statusFile, varFile}
 }
-func (l FileLoader) harvestFile(filename string) (chan MyqSample, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0)
+func (l FileLoader) harvestFile(filename string) (chan myqlib.MyqSample, error) {
+
+	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	var ch = make(chan MyqSample)
+	var ch = make(chan myqlib.MyqSample)
 
 	// The file scanning goes into the background
 	go func() {
@@ -227,11 +154,11 @@ func (l FileLoader) harvestFile(filename string) (chan MyqSample, error) {
 	return ch, nil
 }
 
-func (l FileLoader) getStatus() (chan MyqSample, error) {
+func (l FileLoader) getStatus() (chan myqlib.MyqSample, error) {
 	return l.harvestFile(l.statusFile)
 }
 
-func (l FileLoader) getVars() (chan MyqSample, error) {
+func (l FileLoader) getVars() (chan myqlib.MyqSample, error) {
 	if l.variablesFile != "" {
 		return l.harvestFile(l.variablesFile)
 	} else {
@@ -250,7 +177,7 @@ func NewLiveLoader(i time.Duration, args string) *LiveLoader {
 }
 
 // Collect output from MYSQLCLI and send it back in a sample
-func (l LiveLoader) harvestMySQL(command string) (chan MyqSample, error) {
+func (l LiveLoader) harvestMySQL(command string) (chan myqlib.MyqSample, error) {
 	// Make sure we have MYSQLCLI
 	path, err := exec.LookPath(MYSQLCLI)
 	if err != nil {
@@ -264,7 +191,7 @@ func (l LiveLoader) harvestMySQL(command string) (chan MyqSample, error) {
 
 	// Initialize the command
 	cmd := exec.Command(path, args...)
-	cleanupSubcmd(cmd)
+	myqlib.CleanupSubcmd(cmd)
 
 	// Collect Stderr in a buffer
 	var stderr bytes.Buffer
@@ -316,7 +243,7 @@ func (l LiveLoader) harvestMySQL(command string) (chan MyqSample, error) {
 	}()
 
 	// parse samples in the background
-	var ch = make(chan MyqSample)
+	var ch = make(chan myqlib.MyqSample)
 	go func() {
 		defer close(ch)
 		parseSamples(stdout, ch, l.loaderInterval.getInterval())
@@ -326,6 +253,6 @@ func (l LiveLoader) harvestMySQL(command string) (chan MyqSample, error) {
 	return ch, nil
 }
 
-func (l LiveLoader) getStatus() (chan MyqSample, error) { return l.harvestMySQL(STATUS_COMMAND) }
+func (l LiveLoader) getStatus() (chan myqlib.MyqSample, error) { return l.harvestMySQL(STATUS_COMMAND) }
 
-func (l LiveLoader) getVars() (chan MyqSample, error) { return l.harvestMySQL(VARIABLES_COMMAND) }
+func (l LiveLoader) getVars() (chan myqlib.MyqSample, error) { return l.harvestMySQL(VARIABLES_COMMAND) }

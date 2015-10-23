@@ -1,6 +1,7 @@
-package myqlib
+package loader
 
 import (
+	"github.com/jayjanssen/myq-tools/myqlib"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
@@ -8,54 +9,51 @@ import (
 	"log"
 )
 
-
-// type Loader interface {
-// 	getStatus() (chan MyqSample, error)
-// 	getVars() (chan MyqSample, error)
-// 	getInterval() time.Duration
-// }
-
 // Load mysql status output from a mysqladmin output file
 type SqlLoader struct {
 	loaderInterval
 	db *sql.DB
 }
 
-func NewSqlLoader(i time.Duration, user, pass, host string) *SqlLoader {
+func NewSqlLoader(i time.Duration, user, pass, host string) (*SqlLoader, error) {
 	db, err := sql.Open(`mysql`, fmt.Sprintf( "%s:%s@tcp(%s)/", user, pass, host ))
 	if err != nil {
-		log.Fatal( "Got ", err, "trying to connect to writer")
+		return nil, err
 	}
 	log.Println( "Connected!")
 	// writer.SetMaxIdleConns(max_idle)
 	// writer.SetMaxOpenConns(concurrency)
 
-	return &SqlLoader{loaderInterval(i), db}
+	return &SqlLoader{loaderInterval(i), db}, nil
 }
 
-func (l SqlLoader) getSqlKeyValues(query string) (chan MyqSample, error) {
-	var ch = make(chan MyqSample)
+func (l SqlLoader) getSqlKeyValues(query string) (chan myqlib.MyqSample, error) {
+	var ch = make(chan myqlib.MyqSample)
 
 	// closure to query and get the KVs
 	get_sample := func() {
+		timesample := myqlib.NewMyqSample()
+		defer func() {
+			ch <- timesample
+		}()
+
 		rows, err := l.db.Query( query )
 		if err != nil {
-			log.Print( "Query error: ", err )
+			timesample.SetError( err )
+			return
 		}
 		defer rows.Close()
-
-		timesample := make(MyqSample)
 
 		for rows.Next() {
 			var key, value string
 			err = rows.Scan( &key, &value )
 			if err != nil {
-				log.Fatal( "Scan error: ", err )
+				timesample.SetError( err )
+				return
 			}
 			// log.Println( key, " => ", value)
-			timesample[key] = value
+			timesample.Set(key, value)
 		}
-		ch <- timesample
 	}
 
 	// Run the first query
@@ -72,10 +70,10 @@ func (l SqlLoader) getSqlKeyValues(query string) (chan MyqSample, error) {
 	return ch, nil
 }
 
-func (l SqlLoader) getStatus() (chan MyqSample, error) {
+func (l SqlLoader) getStatus() (chan myqlib.MyqSample, error) {
 	return l.getSqlKeyValues( `select Variable_name, Variable_value from sys.metrics where Enabled='YES'` )
 }
 
-func (l SqlLoader) getVars() (chan MyqSample, error) {
+func (l SqlLoader) getVars() (chan myqlib.MyqSample, error) {
 	return l.getSqlKeyValues( `select lower(VARIABLE_NAME), VARIABLE_VALUE from information_schema.GLOBAL_VARIABLES` )
 }

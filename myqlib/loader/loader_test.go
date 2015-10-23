@@ -1,6 +1,8 @@
-package myqlib
+package loader
 
 import (
+	"github.com/jayjanssen/myq-tools/myqlib"
+
 	"testing"
 	"time"
 )
@@ -27,9 +29,9 @@ func TestEmpty(t *testing.T) {
 }
 
 func TestMetric(t *testing.T) {
-	sample := make(MyqSample)
+	sample := myqlib.NewMyqSample()
 
-	sample["key"] = "value"
+	sample.Set("key", "value")
 
 	if sample.Length() != 1 {
 		t.Fatal("Expecting 1 KV, got", sample.Length())

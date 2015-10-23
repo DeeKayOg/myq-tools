@@ -1,12 +1,14 @@
-package myqlib
+package loader
 
 import (
+	"github.com/jayjanssen/myq-tools/myqlib"
+
 	"testing"
 	"time"
 )
 
 func TestExpand(t *testing.T) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.single", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.single", ""}
 	samples, err := l.getStatus()
 	if err != nil {
 		t.Error(err)
@@ -14,7 +16,7 @@ func TestExpand(t *testing.T) {
 	sample := <-samples
 
 	assert := func(test_name string, variables []string, expected int) {
-		expanded := expand_variables(variables, sample)
+		expanded := myqlib.Expand_variables(variables, sample)
 		if len(expanded) != expected {
 			t.Log(expanded)
 			t.Fatal(test_name, `Failed, got: `, len(expanded), ", expected:", expected)
@@ -30,7 +32,7 @@ func TestExpand(t *testing.T) {
 }
 
 func BenchmarkVariableExpand(b *testing.B) {
-	l := FileLoader{loaderInterval(1 * time.Second), "../testdata/mysqladmin.single", ""}
+	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.single", ""}
 	samples, err := l.getStatus()
 	if err != nil {
 		b.Error(err)
@@ -39,6 +41,6 @@ func BenchmarkVariableExpand(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = expand_variables([]string{`com_insert.*`, `com_update.*`, `com_delete.*`, `Com_load`, `Com_replace.*`, `Com_truncate`}, sample)
+		_ = myqlib.Expand_variables([]string{`com_insert.*`, `com_update.*`, `com_delete.*`, `Com_load`, `Com_replace.*`, `Com_truncate`}, sample)
 	}
 }

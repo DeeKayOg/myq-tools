@@ -6,7 +6,7 @@
 // This file is copied from the standard golang library
 // in order to change the MaxScanTokenSize const
 
-package myqlib
+package loader
 
 import (
 	"bytes"
