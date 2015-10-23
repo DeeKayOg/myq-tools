@@ -13,8 +13,8 @@ type MyqSample struct {
 	err error
 }
 
-func NewMyqSample() MyqSample{
-	return MyqSample{make( map[string]string ), nil}
+func NewMyqSample() MyqSample {
+	return MyqSample{make(map[string]string), nil}
 }
 
 // Number of keys in the sample
@@ -22,20 +22,20 @@ func (s MyqSample) Length() int {
 	return len(s.kvs)
 }
 
-func (s MyqSample) Has( key string) bool {
+func (s MyqSample) Has(key string) bool {
 	_, ok := s.kvs[key]
 	return ok
 }
 
-func (s MyqSample) Get( key string) string {
+func (s MyqSample) Get(key string) string {
 	return s.kvs[key]
 }
 
-func (s MyqSample) Set( key, value string) {
+func (s MyqSample) Set(key, value string) {
 	s.kvs[key] = value
 }
 
-func (s *MyqSample) SetError( err error ) {
+func (s *MyqSample) SetError(err error) {
 	s.err = err
 }
 
@@ -47,9 +47,9 @@ func (s MyqSample) GetError() error {
 	return s.err
 }
 
-func (s MyqSample) ForEach( f func(k, v string)) {
+func (s MyqSample) ForEach(f func(k, v string)) {
 	for k, v := range s.kvs {
-		f( k, v )
+		f(k, v)
 	}
 }
 

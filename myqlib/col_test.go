@@ -26,7 +26,7 @@ func TestFloatCol(t *testing.T) {
 
 	state := MyqState{}
 	state.Cur = NewMyqSample()
-	state.Cur.Set("wsrep_apply_oooe","0.015600")
+	state.Cur.Set("wsrep_apply_oooe", "0.015600")
 
 	str := <-col.Data(&state)
 	if str != "0.016" {
@@ -60,12 +60,12 @@ func TestRateCol(t *testing.T) {
 
 	state := MyqState{}
 	state.Cur = NewMyqSample()
-	state.Cur.Set("connections","10")
-	state.Cur.Set("uptime","1")
+	state.Cur.Set("connections", "10")
+	state.Cur.Set("uptime", "1")
 
 	state.Prev = NewMyqSample()
-	state.Prev.Set("connections","20")
-	state.Prev.Set("uptime","5")
+	state.Prev.Set("connections", "20")
+	state.Prev.Set("uptime", "5")
 
 	state.SecondsDiff = 5.0
 

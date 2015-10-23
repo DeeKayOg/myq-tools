@@ -141,7 +141,7 @@ func parseBatch(ch chan myqlib.MyqSample, buffer *bytes.Buffer, outputtype showo
 			key, value = raw[0], raw[1]
 		}
 
-		timesample.Set( strings.ToLower(string(key)), string(value))
+		timesample.Set(strings.ToLower(string(key)), string(value))
 	}
 
 	if timesample.Length() > 0 {

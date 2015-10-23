@@ -67,7 +67,7 @@ func main() {
 	}
 
 	if *version {
-		fmt.Printf( "myq-tools %s (%s)\n", build_version, build_timestamp )
+		fmt.Printf("myq-tools %s (%s)\n", build_version, build_timestamp)
 		os.Exit(OK)
 	}
 
@@ -75,7 +75,7 @@ func main() {
 	views := myqlib.DefaultViews()
 
 	flag.Usage = func() {
-		fmt.Fprintf( os.Stderr, "myq-tools %s (%s)\n\n", build_version, build_timestamp )
+		fmt.Fprintf(os.Stderr, "myq-tools %s (%s)\n\n", build_version, build_timestamp)
 
 		fmt.Fprintln(os.Stderr, "Usage:\n  myq_status [flags] <view>\n")
 		fmt.Fprintln(os.Stderr, "Description:\n  iostat-like views for MySQL servers\n")

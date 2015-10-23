@@ -3,13 +3,13 @@ package loader
 import (
 	"github.com/jayjanssen/myq-tools/myqlib"
 
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 )
 
 func TestSingleSample(t *testing.T) {
-	fmt.Println( 0 )
+	fmt.Println(0)
 
 	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.single", ""}
 	samples, err := l.getStatus()
@@ -17,7 +17,7 @@ func TestSingleSample(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Println( 1 )
+	fmt.Println(1)
 
 	// Check some types on some known metrics to verify autodetection
 	sample := <-samples
@@ -28,8 +28,7 @@ func TestSingleSample(t *testing.T) {
 		"binlog_snapshot_file":       "string",
 	}
 
-	fmt.Println( 2 )
-
+	fmt.Println(2)
 
 	for varname, expectedtype := range typeTests {
 		i, ierr := sample.GetInt(varname)
@@ -58,10 +57,9 @@ func TestSingleSample(t *testing.T) {
 				continue
 			}
 		}
-		fmt.Println( 3 )
+		fmt.Println(3)
 
 	}
-
 
 }
 
@@ -176,7 +174,7 @@ func checksamples(t *testing.T, samples chan myqlib.MyqSample, expected int) {
 
 		if prev.Length() > 0 && prev.Length() > sample.Length() {
 			t.Log(prev.Get("uptime"), "(previous) had", prev.Length(), "keys.  Current current has", sample.Length())
-			prev.ForEach( func(pkey, _ string) {
+			prev.ForEach(func(pkey, _ string) {
 				if sample.Has(pkey) {
 					t.Log("Missing", pkey, "from current sample")
 				}
@@ -202,7 +200,6 @@ func TestTokuSample(t *testing.T) {
 
 	checksamples(t, samples, 2)
 }
-
 
 func BenchmarkParseStatus(b *testing.B) {
 	for i := 0; i < b.N; i++ {

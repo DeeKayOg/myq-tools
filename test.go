@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jayjanssen/myq-tools/myqlib"
 	"time"
-	"fmt"
 )
 
 func main() {
@@ -17,6 +17,6 @@ func main() {
 	}
 
 	for state := range states {
-		fmt.Println( state.Cur[`uptime`] )
+		fmt.Println(state.Cur[`uptime`])
 	}
 }

@@ -1,11 +1,11 @@
 package loader
 
 import (
-	"github.com/jayjanssen/myq-tools/myqlib"
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
-	"time"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jayjanssen/myq-tools/myqlib"
+	"time"
 )
 
 // Load mysql status output from a mysqladmin output file
@@ -20,7 +20,7 @@ func NewSqlLoader(i time.Duration, user, pass, host string) (*SqlLoader, error) 
 	if pass != `` {
 		cstr += `:` + pass
 	}
-	db, err := sql.Open(`mysql`, fmt.Sprintf( "%s@tcp(%s)/", cstr, host ))
+	db, err := sql.Open(`mysql`, fmt.Sprintf("%s@tcp(%s)/", cstr, host))
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func NewSqlLoader(i time.Duration, user, pass, host string) (*SqlLoader, error) 
 	// writer.SetMaxOpenConns(concurrency)
 
 	// Test the connection to verify credentials now
-	_, err = db.Query( `SELECT 1` )
+	_, err = db.Query(`SELECT 1`)
 	if err != nil {
 		return nil, err
 	}
@@ -46,18 +46,18 @@ func (l SqlLoader) getSqlKeyValues(query string) (chan myqlib.MyqSample, error) 
 			ch <- timesample
 		}()
 
-		rows, err := l.db.Query( query )
+		rows, err := l.db.Query(query)
 		if err != nil {
-			timesample.SetError( err )
+			timesample.SetError(err)
 			return
 		}
 		defer rows.Close()
 
 		for rows.Next() {
 			var key, value string
-			err = rows.Scan( &key, &value )
+			err = rows.Scan(&key, &value)
 			if err != nil {
-				timesample.SetError( err )
+				timesample.SetError(err)
 				return
 			}
 			// log.Println( key, " => ", value)
@@ -80,9 +80,9 @@ func (l SqlLoader) getSqlKeyValues(query string) (chan myqlib.MyqSample, error) 
 }
 
 func (l SqlLoader) getStatus() (chan myqlib.MyqSample, error) {
-	return l.getSqlKeyValues( `select Variable_name, Variable_value from sys.metrics where Enabled='YES'` )
+	return l.getSqlKeyValues(`select Variable_name, Variable_value from sys.metrics where Enabled='YES'`)
 }
 
 func (l SqlLoader) getVars() (chan myqlib.MyqSample, error) {
-	return l.getSqlKeyValues( `select lower(VARIABLE_NAME), VARIABLE_VALUE from information_schema.GLOBAL_VARIABLES` )
+	return l.getSqlKeyValues(`select lower(VARIABLE_NAME), VARIABLE_VALUE from information_schema.GLOBAL_VARIABLES`)
 }

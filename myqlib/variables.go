@@ -15,7 +15,7 @@ func Expand_variables(variables []string, sample MyqSample) (expanded []string) 
 			hash[variable] = 1
 		} else {
 			// Got a regex, loop through all keys to try to find matches
-			sample.ForEach(func(key,val string) {
+			sample.ForEach(func(key, val string) {
 				if re.MatchString(key) {
 					hash[key] = 1
 				}

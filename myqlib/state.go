@@ -9,7 +9,7 @@ type MyqState struct {
 }
 
 func NewMyqState() MyqState {
-	return MyqState{NewMyqSample(),NewMyqSample(), 0, 0}
+	return MyqState{NewMyqSample(), NewMyqSample(), 0, 0}
 }
 
 func (s MyqState) HasError() bool {

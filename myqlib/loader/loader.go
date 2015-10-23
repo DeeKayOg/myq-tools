@@ -1,10 +1,10 @@
 package loader
 
 import (
-	"github.com/jayjanssen/myq-tools/myqlib"
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/jayjanssen/myq-tools/myqlib"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,11 +14,11 @@ import (
 const SPECIALENDSTRING string = "MYQTOOLSEND"
 
 const (
-	MYSQLCLI          string       = "mysql"
+	MYSQLCLI string = "mysql"
 
 	// These next two must match
-	END_STRING        string       = "MYQTOOLSEND"
-	END_COMMAND        string       = "SELECT 'MYQTOOLSEND'"
+	END_STRING  string = "MYQTOOLSEND"
+	END_COMMAND string = "SELECT 'MYQTOOLSEND'"
 
 	// The commands we send to the mysql cli
 	STATUS_COMMAND    string = "SHOW GLOBAL STATUS"
@@ -103,7 +103,7 @@ func GetState(l Loader) (chan *myqlib.MyqState, error) {
 			}
 
 			// Add latest vars to status with prefix
-			latestvars.ForEach( func(k, v string) {
+			latestvars.ForEach(func(k, v string) {
 				newkey := fmt.Sprint(VAR_PREFIX, k)
 				state.Cur.Set(newkey, v)
 			})
@@ -224,7 +224,7 @@ func (l LiveLoader) harvestMySQL(command string) (chan myqlib.MyqSample, error) 
 	}()
 
 	// feed the MYSQLCLI the given command to produce more output
-	full_command := strings.Join( []string{command, END_COMMAND, "\n"}, "; " )
+	full_command := strings.Join([]string{command, END_COMMAND, "\n"}, "; ")
 	send_command := func() {
 		// We don't check if the write failed, it's assumed the cmd.Wait() above will catch the sub proc dying
 

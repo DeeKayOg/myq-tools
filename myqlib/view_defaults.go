@@ -215,7 +215,7 @@ func DefaultViews() map[string]View {
 			NewGroupCol(`Node`, `Node's specific state`,
 				// NewStringCol(`state`, `State of this node`, 4, `wsrep_local_state_comment`),
 				NewFuncCol(`state`, `State of this node`, 4, func(state *MyqState, c Col) chan string {
-					ch := make( chan string, 1)
+					ch := make(chan string, 1)
 					defer close(ch)
 
 					st := state.Cur.GetStr(`wsrep_local_state_comment`)
@@ -235,7 +235,7 @@ func DefaultViews() map[string]View {
 							ch <- `J:F`
 						case `Joined`:
 							ch <- `Jned`
-						default: 
+						default:
 							ch <- st[0:4]
 						}
 					} else {
