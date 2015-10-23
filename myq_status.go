@@ -148,7 +148,8 @@ func main() {
 		v.SetTimeCol(&myqlib.Runtime_col)
 	} else {
 		// No file given, this is a live collection and we use timestamps
-		loader = myqlib.NewLiveLoader(*interval, *mysql_args)
+		// loader = myqlib.NewLiveLoader(*interval, *mysql_args)
+		loader = myqlib.NewSqlLoader(*interval, "root", "", "")
 		v.SetTimeCol(&myqlib.Timestamp_col)
 	}
 
