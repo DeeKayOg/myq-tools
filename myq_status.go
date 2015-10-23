@@ -151,8 +151,14 @@ func main() {
 		v.SetTimeCol(&myqlib.Runtime_col)
 	} else {
 		// No file given, this is a live collection and we use timestamps
-		// loader = myqlib.NewLiveLoader(*interval, *mysql_args)
-		l, err = loader.NewSqlLoader(*interval, "root", "", "")
+		l = loader.NewLiveLoader(*interval, *mysql_args)
+		// l, err = loader.NewSqlLoader(*interval, "root", "", "")
+
+		// if err != nil {
+		// 	fmt.Fprintln(os.Stderr, err)
+		// 	os.Exit(LOADER_ERROR)
+		// }
+
 		v.SetTimeCol(&myqlib.Timestamp_col)
 	}
 
@@ -171,6 +177,11 @@ func main() {
 	}
 
 	for state := range states {
+		if state.HasError() {
+			fmt.Fprintln(os.Stderr, state.GetError())
+			continue
+		}
+
 		// Reprint a header whenever lines == 0
 		if lines == 0 {
 			headers := []string{}

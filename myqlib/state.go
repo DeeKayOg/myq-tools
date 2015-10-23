@@ -11,3 +11,11 @@ type MyqState struct {
 func NewMyqState() MyqState {
 	return MyqState{NewMyqSample(),NewMyqSample(), 0, 0}
 }
+
+func (s MyqState) HasError() bool {
+	return s.Cur.HasError()
+}
+
+func (s MyqState) GetError() error {
+	return s.Cur.GetError()
+}

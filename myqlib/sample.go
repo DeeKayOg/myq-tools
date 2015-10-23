@@ -35,7 +35,7 @@ func (s MyqSample) Set( key, value string) {
 	s.kvs[key] = value
 }
 
-func (s MyqSample) SetError( err error ) {
+func (s *MyqSample) SetError( err error ) {
 	s.err = err
 }
 

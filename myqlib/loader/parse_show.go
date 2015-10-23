@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 )
 
 // Different types of files to parse
@@ -79,7 +78,6 @@ func parseSamples(reader io.Reader, ch chan myqlib.MyqSample, interval time.Dura
 			if check_intervals && skip_interval(data[0:end]) {
 				return end + nl + 1, nil, nil
 			}
-			fmt.Println( "Found record: ", string(data[0:end]))
 			return end + nl + 1, data[0:end], nil
 		}
 

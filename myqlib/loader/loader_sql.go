@@ -6,7 +6,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"time"
 	"fmt"
-	"log"
 )
 
 // Load mysql status output from a mysqladmin output file
@@ -16,13 +15,23 @@ type SqlLoader struct {
 }
 
 func NewSqlLoader(i time.Duration, user, pass, host string) (*SqlLoader, error) {
-	db, err := sql.Open(`mysql`, fmt.Sprintf( "%s:%s@tcp(%s)/", user, pass, host ))
+	var cstr string
+	cstr = user
+	if pass != `` {
+		cstr += `:` + pass
+	}
+	db, err := sql.Open(`mysql`, fmt.Sprintf( "%s@tcp(%s)/", cstr, host ))
 	if err != nil {
 		return nil, err
 	}
-	log.Println( "Connected!")
 	// writer.SetMaxIdleConns(max_idle)
 	// writer.SetMaxOpenConns(concurrency)
+
+	// Test the connection to verify credentials now
+	_, err = db.Query( `SELECT 1` )
+	if err != nil {
+		return nil, err
+	}
 
 	return &SqlLoader{loaderInterval(i), db}, nil
 }
