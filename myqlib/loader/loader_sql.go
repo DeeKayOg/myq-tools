@@ -6,12 +6,14 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jayjanssen/myq-tools/myqlib"
 	"time"
+	"errors"
 )
 
 // Load mysql status output from a mysqladmin output file
 type SqlLoader struct {
 	loaderInterval
 	db *sql.DB
+	status_table_name string
 }
 
 func NewSqlLoader(i time.Duration, user, pass, host string, port int64) (*SqlLoader, error) {
@@ -33,7 +35,23 @@ func NewSqlLoader(i time.Duration, user, pass, host string, port int64) (*SqlLoa
 		return nil, err
 	}
 
-	return &SqlLoader{loaderInterval(i), db}, nil
+	// Check which table is available, prefer the first
+	tables := []string{`sys.metrics`,`information_schema.global_status`}
+	var table *string
+	for _, t := range tables {
+		_, err = db.Query(`desc ` + t)
+		if err == nil {
+			table = &t
+			break
+		} else {
+			fmt.Println( "Couldn't find ", t)
+		}
+	}
+	if table == nil {
+		return nil, errors.New("Couldn't find a status table to query, use a MySQL version with the INFORMATION_SCHEMA")
+	}
+
+	return &SqlLoader{loaderInterval(i), db, *table}, nil
 }
 
 func (l SqlLoader) getSqlKeyValues(query string) (chan myqlib.MyqSample, error) {
@@ -80,9 +98,9 @@ func (l SqlLoader) getSqlKeyValues(query string) (chan myqlib.MyqSample, error) 
 }
 
 func (l SqlLoader) getStatus() (chan myqlib.MyqSample, error) {
-	return l.getSqlKeyValues(`select Variable_name, Variable_value from sys.metrics where Enabled='YES'`)
+	return l.getSqlKeyValues(`select lower(variable_name), variable_value from ` + l.status_table_name )
 }
 
 func (l SqlLoader) getVars() (chan myqlib.MyqSample, error) {
-	return l.getSqlKeyValues(`select lower(VARIABLE_NAME), VARIABLE_VALUE from information_schema.GLOBAL_VARIABLES`)
+	return l.getSqlKeyValues(`select lower(variable_name), variable_name from information_schema.GLOBAL_VARIABLES`)
 }
