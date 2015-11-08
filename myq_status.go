@@ -31,20 +31,41 @@ func main() {
 	// Parse arguments
 	help := flag.Bool("help", false, "this help text")
 	version := flag.Bool("version", false, "print the version")
+	debug := flag.Bool("debug", false, "debug output")
 
+	// program utils
 	profile := flag.String("profile", "", "enable profiling and store the result in this file")
-	header := flag.Int64("header", 0, "repeat the header after this many data points (default: 0, autocalculates)")
-	width := flag.Bool("width", false, "Truncate the output based on the width of the terminal")
 
-	mysql_args := flag.String("mysqlargs", "", "Arguments to pass to the mysql cli (used for connection options).  Note that '-p' for a password prompt is not supported.")
-	flag.StringVar(mysql_args, "a", "", "Short for -mysqlargs")
+	// output controls
+	header := flag.Int64("header", 0, "repeat the header after this many data points (default: 0, autocalculates)")
+	width := flag.Bool("width", false, "Truncate the output based on the width of the terminal (default: output lines wrap")
+
+
 	interval := flag.Duration("interval", time.Second, "Time between samples (example: 1s or 1h30m)")
 	flag.DurationVar(interval, "i", time.Second, "short for -interval")
 
+	// Use input files instead of connecting to mysql
 	statusfile := flag.String("file", "", "parse mysqladmin ext output file instead of connecting to mysql")
 	flag.StringVar(statusfile, "f", "", "short for -file")
 	varfile := flag.String("varfile", "", "parse mysqladmin variables file instead of connecting to mysql, for optional use with -file")
 	flag.StringVar(varfile, "vf", "", "short for -varfile")
+
+	// Connection info for live sampling of mysql
+	user := flag.String("user", "root", "mysql user (default: root)")
+	flag.StringVar(user, "u", "root", "short for -user")
+
+	password := flag.String("password", "", "mysql password, leave blank to prompt")
+	flag.StringVar(password, "p", "", "short for -password")
+
+	host := flag.String("host", "", "mysql hostname, default: localhost")
+	flag.StringVar(host, "h", "", "short for -host")
+
+	port := flag.Int64("port", 3306, "mysql port, default: 3306")
+	flag.Int64Var(port, "P", 3306, "short for -port")
+
+	socket := flag.String("socket", "", "mysqld unix socket file")
+	flag.StringVar(socket, "S", "", "short for -socket")
+
 
 	flag.Parse()
 
@@ -69,6 +90,22 @@ func main() {
 	if *version {
 		fmt.Printf("myq-tools %s (%s)\n", build_version, build_timestamp)
 		os.Exit(OK)
+	}
+
+	if *debug {
+		// Output the options
+		fmt.Println("interval:", interval.String())
+
+		fmt.Println( "statusfile:", *statusfile)
+		fmt.Println( "varfile:", *varfile)
+
+		fmt.Println( "user:", *user)
+		fmt.Println( "password:", *password)
+		fmt.Println( "host:", *host)
+		fmt.Println( "port:", *port)
+
+		fmt.Println( "socket:", *socket)
+
 	}
 
 	// Load default Views
@@ -151,13 +188,13 @@ func main() {
 		v.SetTimeCol(&myqlib.Runtime_col)
 	} else {
 		// No file given, this is a live collection and we use timestamps
-		l = loader.NewLiveLoader(*interval, *mysql_args)
-		// l, err = loader.NewSqlLoader(*interval, "root", "", "")
+		// l = loader.NewLiveLoader(*interval, *mysql_args)
+		l, err = loader.NewSqlLoader(*interval, *user, *password, *host, *port)
 
-		// if err != nil {
-		// 	fmt.Fprintln(os.Stderr, err)
-		// 	os.Exit(LOADER_ERROR)
-		// }
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(LOADER_ERROR)
+		}
 
 		v.SetTimeCol(&myqlib.Timestamp_col)
 	}

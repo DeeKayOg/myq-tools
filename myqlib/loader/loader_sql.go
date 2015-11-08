@@ -14,13 +14,13 @@ type SqlLoader struct {
 	db *sql.DB
 }
 
-func NewSqlLoader(i time.Duration, user, pass, host string) (*SqlLoader, error) {
+func NewSqlLoader(i time.Duration, user, pass, host string, port int64) (*SqlLoader, error) {
 	var cstr string
 	cstr = user
 	if pass != `` {
 		cstr += `:` + pass
 	}
-	db, err := sql.Open(`mysql`, fmt.Sprintf("%s@tcp(%s)/", cstr, host))
+	db, err := sql.Open(`mysql`, fmt.Sprintf("%s@tcp(%s:%d)/", cstr, host, port))
 	if err != nil {
 		return nil, err
 	}
