@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/jayjanssen/myq-tools/myqlib"
 	"github.com/jayjanssen/myq-tools/myqlib/loader"
-
+	"github.com/howeyc/gopass"
 	"math"
 	"os"
 	"os/signal"
@@ -56,6 +56,8 @@ func main() {
 
 	password := flag.String("password", "", "mysql password, leave blank to prompt")
 	flag.StringVar(password, "p", "", "short for -password")
+
+	ask_pass := flag.Bool("ask", false, "prompt for the mysql password")
 
 	host := flag.String("host", "", "mysql hostname, default: localhost")
 	flag.StringVar(host, "h", "", "short for -host")
@@ -188,7 +190,12 @@ func main() {
 		v.SetTimeCol(&myqlib.Runtime_col)
 	} else {
 		// No file given, this is a live collection and we use timestamps
-		// l = loader.NewLiveLoader(*interval, *mysql_args)
+
+		if *ask_pass {
+		    fmt.Printf("Password: ")
+		    *password = string(gopass.GetPasswd())
+		}
+
 		l, err = loader.NewSqlLoader(*interval, *user, *password, *host, *port)
 
 		if err != nil {
