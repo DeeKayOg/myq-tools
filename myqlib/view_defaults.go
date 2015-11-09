@@ -1,12 +1,12 @@
 package myqlib
 
 import (
-	`bytes`
-	`fmt`
-	`sort`
-	`strconv`
-	`strings`
-	`time`
+	"bytes"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // Time Columns

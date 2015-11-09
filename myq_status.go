@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/howeyc/gopass"
 	"github.com/jayjanssen/myq-tools/myqlib"
 	"github.com/jayjanssen/myq-tools/myqlib/loader"
-	"github.com/howeyc/gopass"
+	"golang.org/x/crypto/ssh/terminal"
 	"math"
 	"os"
 	"os/signal"
@@ -14,7 +15,6 @@ import (
 	"sort"
 	"syscall"
 	"time"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // Exit codes
@@ -40,7 +40,6 @@ func main() {
 	// output controls
 	header := flag.Int("header", 0, "repeat the header after this many data points (default: 0, autocalculates)")
 	width := flag.Bool("width", false, "Truncate the output based on the width of the terminal (default: output lines wrap")
-
 
 	interval := flag.Duration("interval", time.Second, "Time between samples (example: 1s or 1h30m)")
 	flag.DurationVar(interval, "i", time.Second, "short for -interval")
@@ -68,7 +67,6 @@ func main() {
 
 	socket := flag.String("socket", "", "mysqld unix socket file")
 	flag.StringVar(socket, "S", "", "short for -socket")
-
 
 	flag.Parse()
 
@@ -99,15 +97,15 @@ func main() {
 		// Output the options
 		fmt.Println("interval:", interval.String())
 
-		fmt.Println( "statusfile:", *statusfile)
-		fmt.Println( "varfile:", *varfile)
+		fmt.Println("statusfile:", *statusfile)
+		fmt.Println("varfile:", *varfile)
 
-		fmt.Println( "user:", *user)
-		fmt.Println( "password:", *password)
-		fmt.Println( "host:", *host)
-		fmt.Println( "port:", *port)
+		fmt.Println("user:", *user)
+		fmt.Println("password:", *password)
+		fmt.Println("host:", *host)
+		fmt.Println("port:", *port)
 
-		fmt.Println( "socket:", *socket)
+		fmt.Println("socket:", *socket)
 
 	}
 
@@ -192,8 +190,8 @@ func main() {
 		// No file given, this is a live collection and we use timestamps
 
 		if *ask_pass {
-		    fmt.Printf("Password: ")
-		    *password = string(gopass.GetPasswd())
+			fmt.Printf("Password: ")
+			*password = string(gopass.GetPasswd())
 		}
 
 		l, err = loader.NewSqlLoader(*interval, *user, *password, *host, *port)
@@ -263,7 +261,7 @@ func main() {
 			if *header == 0 {
 				headernum = termheight
 			}
-		}		
+		}
 	}
 
 	os.Exit(OK)

@@ -2,17 +2,17 @@ package loader
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jayjanssen/myq-tools/myqlib"
 	"time"
-	"errors"
 )
 
 // Load mysql status output from a mysqladmin output file
 type SqlLoader struct {
 	loaderInterval
-	db *sql.DB
+	db                *sql.DB
 	status_table_name string
 }
 
@@ -36,7 +36,7 @@ func NewSqlLoader(i time.Duration, user, pass, host string, port int64) (*SqlLoa
 	}
 
 	// Check which table is available, prefer the first
-	tables := []string{`sys.metrics`,`information_schema.global_status`}
+	tables := []string{`sys.metrics`, `information_schema.global_status`}
 	var table *string
 	for _, t := range tables {
 		_, err = db.Query(`desc ` + t)
@@ -44,7 +44,7 @@ func NewSqlLoader(i time.Duration, user, pass, host string, port int64) (*SqlLoa
 			table = &t
 			break
 		} else {
-			fmt.Println( "Couldn't find ", t)
+			fmt.Println("Couldn't find ", t)
 		}
 	}
 	if table == nil {
@@ -98,7 +98,7 @@ func (l SqlLoader) getSqlKeyValues(query string) (chan myqlib.MyqSample, error) 
 }
 
 func (l SqlLoader) getStatus() (chan myqlib.MyqSample, error) {
-	return l.getSqlKeyValues(`select lower(variable_name), variable_value from ` + l.status_table_name )
+	return l.getSqlKeyValues(`select lower(variable_name), variable_value from ` + l.status_table_name)
 }
 
 func (l SqlLoader) getVars() (chan myqlib.MyqSample, error) {
