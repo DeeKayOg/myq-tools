@@ -14,6 +14,7 @@ import (
 	"sort"
 	"syscall"
 	"time"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // Exit codes
@@ -37,7 +38,7 @@ func main() {
 	profile := flag.String("profile", "", "enable profiling and store the result in this file")
 
 	// output controls
-	header := flag.Int64("header", 0, "repeat the header after this many data points (default: 0, autocalculates)")
+	header := flag.Int("header", 0, "repeat the header after this many data points (default: 0, autocalculates)")
 	width := flag.Bool("width", false, "Truncate the output based on the width of the terminal (default: output lines wrap")
 
 
@@ -170,10 +171,10 @@ func main() {
 		os.Exit(OK)
 	}
 
-	termheight, termwidth := myqlib.GetTermSize()
+	termwidth, termheight, err := terminal.GetSize(0)
 
 	// How many lines before printing a new header
-	var headernum int64
+	var headernum int
 	if *header != 0 {
 		headernum = *header // Use the specified header count
 	} else {
@@ -182,7 +183,6 @@ func main() {
 
 	// The Loader and Timecol we will use
 	var l loader.Loader
-	var err error
 
 	if *statusfile != "" {
 		// File given, load it (and the optional varfile)
@@ -214,12 +214,13 @@ func main() {
 	}
 
 	// Apply selected view to output each sample
-	lines := int64(0)
+	lines := 0
 	var buf myqlib.FixedWidthBuffer
 	if *width == true {
 		buf.SetWidth(termwidth)
 	}
 
+	// Process every 'state' we get back
 	for state := range states {
 		if state.HasError() {
 			fmt.Fprintln(os.Stderr, state.GetError())
@@ -249,15 +250,20 @@ func main() {
 		// Determine if we need to reset lines to 0 (and trigger a header)
 		if lines/headernum >= 1 {
 			lines = 0
-			// Recalculate the size of the terminal now too
-			termheight, termwidth = myqlib.GetTermSize()
-			if *width == true {
-				buf.SetWidth(termwidth)
+		}
+
+		// Recalculate the size of the terminal now too
+		termwidth, termheight, err = terminal.GetSize(0)
+		if err == nil {
+			if *width == true && buf.SetWidth(termwidth) {
+				// reprint the header
+				fmt.Println()
+				lines = 0
 			}
 			if *header == 0 {
 				headernum = termheight
 			}
-		}
+		}		
 	}
 
 	os.Exit(OK)

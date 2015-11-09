@@ -2,25 +2,10 @@ package myqlib
 
 import (
 	"bytes"
-	"os"
 	"os/exec"
 	"reflect"
-	"strconv"
-	"strings"
 	"syscall"
 )
-
-// this needs some error handling and testing love
-func GetTermSize() (height, width int64) {
-	cmd := exec.Command("stty", "size")
-	cmd.Stdin = os.Stdin
-	out, _ := cmd.Output()
-	vals := strings.Split(strings.TrimSpace(string(out)), " ")
-
-	height, _ = strconv.ParseInt(vals[0], 10, 64)
-	width, _ = strconv.ParseInt(vals[1], 10, 64)
-	return
-}
 
 // Set OS-specific SysProcAttrs if they exist
 func CleanupSubcmd(c *exec.Cmd) {
@@ -39,11 +24,15 @@ func CleanupSubcmd(c *exec.Cmd) {
 //
 type FixedWidthBuffer struct {
 	bytes.Buffer
-	maxwidth int64
+	maxwidth int
 }
 
-func (b *FixedWidthBuffer) SetWidth(w int64) {
-	b.maxwidth = w
+func (b *FixedWidthBuffer) SetWidth(w int) (changed bool) {
+	if w != b.maxwidth {
+		b.maxwidth = w
+		return true
+	}
+	return false
 }
 func (b *FixedWidthBuffer) WriteString(s string) (n int, err error) {
 	runes := bytes.Runes([]byte(s))
