@@ -9,15 +9,11 @@ import (
 )
 
 func TestSingleSample(t *testing.T) {
-	fmt.Println(0)
-
 	l := FileLoader{loaderInterval(1 * time.Second), "../../testdata/mysqladmin.single", ""}
 	samples, err := l.getStatus()
 	if err != nil {
 		t.Error(err)
 	}
-
-	fmt.Println(1)
 
 	// Check some types on some known metrics to verify autodetection
 	sample := <-samples
@@ -27,8 +23,6 @@ func TestSingleSample(t *testing.T) {
 		"wsrep_local_send_queue_avg": "float64",
 		"binlog_snapshot_file":       "string",
 	}
-
-	fmt.Println(2)
 
 	for varname, expectedtype := range typeTests {
 		i, ierr := sample.GetInt(varname)
@@ -279,14 +273,16 @@ func BenchmarkParseManySamples(b *testing.B) {
 
 func BenchmarkParseManySamplesLongInterval(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		l := FileLoader{loaderInterval(1 * time.Minute), "../testdata/mysqladmin.lots", ""}
+		l := FileLoader{loaderInterval(1 * time.Minute), "../../testdata/mysqladmin.lots", ""}
 		samples, err := l.getStatus()
 
 		if err != nil {
 			b.Error(err)
 		}
-		for j := 0; j <= 220; j++ {
-			<-samples
+
+		j := 0
+		for range samples {
+			j++
 		}
 	}
 }
